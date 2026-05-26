@@ -10,27 +10,37 @@ from app.schemas.mobile import (
     MobileBatchResponse,
     MobileBatchStatusResponse,
     MobileCreateBatchRequest,
+    MobileLoginRequest,
     MobileSyncConfigResponse,
 )
 from app.services.auth_service import AuthService
 from app.services.batch_service import BatchService
+from app.services.device_service import DeviceService
 from app.services.file_service import FileService
-from app.schemas.auth import LoginRequest
 
 router = APIRouter(prefix="/api/mobile", tags=["mobile"])
 settings = get_settings()
 
 
 @router.post("/auth/login", response_model=TokenResponse)
-def mobile_login(request: Request, body: LoginRequest, db: DbSession):
+def mobile_login(request: Request, body: MobileLoginRequest, db: DbSession):
     meta = get_client_meta(request)
-    token, _ = AuthService(db).login(
+    auth = AuthService(db)
+    token, user = auth.login(
         body.username,
         body.password,
         ip_address=meta["ip_address"],
         user_agent=meta["user_agent"],
         allowed_roles={UserRole.MOBILE_USER},
     )
+    if body.device_id:
+        DeviceService(db).register_or_get_device(
+            user,
+            body.device_id,
+            platform=body.platform,
+            device_name=body.device_name,
+        )
+        db.commit()
     return TokenResponse(access_token=token)
 
 

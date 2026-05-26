@@ -8,6 +8,14 @@ from app.models.batch import BatchStatus, DealType
 from app.schemas.batch import CostSchema, FarmerSchema, PaymentSchema, PurchaseDetailSchema
 
 
+class MobileLoginRequest(BaseModel):
+    username: str = Field(min_length=1)
+    password: str = Field(min_length=1)
+    device_id: Optional[str] = Field(None, min_length=1, max_length=128)
+    platform: Optional[str] = Field(None, max_length=64)
+    device_name: Optional[str] = Field(None, max_length=255)
+
+
 class MobileCreateBatchRequest(BaseModel):
     batch_uuid: str = Field(min_length=1)
     batch_code: str

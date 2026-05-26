@@ -29,6 +29,7 @@ from app.schemas.admin import (
 )
 from app.schemas.batch import BatchDetailOut
 from app.schemas.mobile import MobileCreateBatchRequest
+from app.services.device_service import DeviceService
 from app.services.inventory_service import InventoryService
 from app.utils.datetime_utils import utc_now
 
@@ -67,9 +68,7 @@ class BatchService:
             raise HTTPException(status_code=400, detail="payment.amount must be > 0")
         if not user.is_active:
             raise HTTPException(status_code=403, detail="User inactive")
-        device = self.users.get_device_by_device_id(data.device_id)
-        if not device or device.user_id != user.id:
-            raise HTTPException(status_code=400, detail="device_id is invalid")
+        DeviceService(self.db).register_or_get_device(user, data.device_id)
 
     def _compute_totals(self, data: MobileCreateBatchRequest) -> tuple[Decimal, Decimal]:
         total_kg = sum((d.weight_kg for d in data.purchase_details), Decimal("0"))
@@ -140,9 +139,7 @@ class BatchService:
         self.batches.add_costs(costs)
         self.batches.add_payment(payment)
 
-        device = self.users.get_device_by_device_id(data.device_id)
-        if device:
-            self.users.touch_device(device)
+        DeviceService(self.db).register_or_get_device(user, data.device_id)
 
         self.batches.add_sync_event("batch", batch.batch_uuid, "BATCH_CREATED", batch.sync_version)
         self.db.commit()

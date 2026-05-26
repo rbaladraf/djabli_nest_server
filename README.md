@@ -95,8 +95,15 @@ curl -X POST http://localhost/api/auth/login \
 ```bash
 curl -X POST http://localhost/api/mobile/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"mobile_user","password":"..."}'
+  -d '{
+    "username": "collector01",
+    "password": "...",
+    "device_id": "ANDROID-ID-DARI-HP",
+    "platform": "android"
+  }'
 ```
+
+`device_id` opsional saat login; jika dikirim, perangkat didaftarkan otomatis ke user tersebut. Saat `POST /api/mobile/batches`, `device_id` yang belum ada juga didaftarkan otomatis (kecuali sudah dipakai user lain → **409**).
 
 Gunakan `access_token` sebagai header: `Authorization: Bearer <token>`.
 
@@ -119,7 +126,7 @@ Endpoint prefix: `/api/admin/users` — membutuhkan role **ADMIN** atau **SUPERA
 2. `POST /api/admin/users` dengan role `MOBILE_USER`.
 3. Berikan username/password ke petugas lapangan.
 4. Petugas login di app mobile (`/api/mobile/auth/login`).
-5. Daftarkan `device_id` di tabel devices (CLI atau extend API jika diperlukan).
+5. `device_id` **otomatis terdaftar** saat login mobile (jika dikirim) atau saat batch pertama dikirim — tidak perlu CLI manual.
 
 ### Endpoint
 
