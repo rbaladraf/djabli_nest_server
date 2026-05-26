@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Query
@@ -17,6 +16,7 @@ from app.schemas.admin import (
 from app.schemas.batch import BatchDetailOut, BatchSummaryOut
 from app.services.batch_service import BatchService
 from app.services.sync_service import SyncService
+from app.utils.datetime_utils import parse_optional_since
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -25,9 +25,12 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 def sync_batches(
     user: AdminUser,
     db: DbSession,
-    since: Optional[datetime] = Query(None),
+    since: Optional[str] = Query(
+        None,
+        description="ISO datetime; kosong = sync semua batch",
+    ),
 ):
-    return SyncService(db).admin_sync_batches(since)
+    return SyncService(db).admin_sync_batches(parse_optional_since(since))
 
 
 @router.get("/batches", response_model=List[BatchSummaryOut])

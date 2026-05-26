@@ -23,6 +23,19 @@ def _full_mobile_pipeline(client, seed_users, mobile_token, dummy_jpeg) -> str:
     return batch_uuid
 
 
+def test_sync_batches_accepts_empty_since(client, seed_users, admin_token):
+    headers = auth_header(admin_token)
+    for url in (
+        "/api/admin/sync/batches",
+        "/api/admin/sync/batches?since=",
+    ):
+        r = client.get(url, headers=headers)
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert "server_time" in body
+        assert "items" in body
+
+
 def test_admin_login(client, seed_users, admin_token):
     r = client.get("/api/auth/me", headers=auth_header(admin_token))
     assert r.status_code == 200

@@ -100,6 +100,69 @@ curl -X POST http://localhost/api/mobile/auth/login \
 
 Gunakan `access_token` sebagai header: `Authorization: Bearer <token>`.
 
+## Manajemen User (Desktop Admin)
+
+Endpoint prefix: `/api/admin/users` — membutuhkan role **ADMIN** atau **SUPERADMIN**.
+
+### Hak akses role
+
+| Aksi | SUPERADMIN | ADMIN | MOBILE_USER |
+|------|------------|-------|-------------|
+| Lihat / kelola user | Ya | Ya (MOBILE_USER saja) | Tidak |
+| Buat MOBILE_USER | Ya | Ya | Tidak |
+| Buat ADMIN / SUPERADMIN | Ya | Tidak | Tidak |
+| Reset password | Ya | Ya (target MOBILE_USER) | Tidak |
+
+### Flow Desktop Admin — buat collector mobile
+
+1. Login admin di desktop → dapat JWT.
+2. `POST /api/admin/users` dengan role `MOBILE_USER`.
+3. Berikan username/password ke petugas lapangan.
+4. Petugas login di app mobile (`/api/mobile/auth/login`).
+5. Daftarkan `device_id` di tabel devices (CLI atau extend API jika diperlukan).
+
+### Endpoint
+
+| Method | Path | Keterangan |
+|--------|------|------------|
+| GET | `/api/admin/users` | Daftar user (`?role=&is_active=&search=`) |
+| POST | `/api/admin/users` | Buat user baru |
+| GET | `/api/admin/users/{user_id}` | Detail user |
+| PATCH | `/api/admin/users/{user_id}` | Update nama / role / aktif |
+| POST | `/api/admin/users/{user_id}/reset-password` | Reset password |
+| POST | `/api/admin/users/{user_id}/activate` | Aktifkan |
+| POST | `/api/admin/users/{user_id}/deactivate` | Nonaktifkan |
+
+Response **tidak** menyertakan `password_hash`.
+
+### Contoh curl — buat MOBILE_USER (superadmin)
+
+```bash
+# Login dulu
+curl -X POST http://localhost/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"superadmin","password":"SuperAdmin123!"}'
+
+# Buat collector
+curl -X POST http://localhost/api/admin/users \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "collector01",
+    "password": "StrongPassword#123",
+    "full_name": "Collector 01",
+    "role": "MOBILE_USER",
+    "is_active": true
+  }'
+```
+
+List user dengan filter:
+
+```bash
+curl "http://localhost/api/admin/users?role=MOBILE_USER&is_active=true&search=collector" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
 ## Contoh curl — Mobile batch
 
 ```bash

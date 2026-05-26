@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import admin, auth, files, health, mobile
+from app.api.routes import admin, admin_users, auth, files, health, mobile
 from app.core.config import get_settings
 from app.core.logging import setup_logging
 
@@ -35,4 +35,5 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(mobile.router)
 app.include_router(admin.router)
+app.include_router(admin_users.router)
 app.include_router(files.router)
