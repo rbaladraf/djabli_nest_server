@@ -225,6 +225,21 @@ export DATABASE_URL=postgresql://djabli:djabli_secret@localhost:5432/djablinest
 ./scripts/restore_postgres.sh ./backups/djablinest_YYYYMMDD.sql.gz
 ```
 
+## Reset data (keep users)
+
+Untuk mengosongkan semua tabel **kecuali** `users` (dan menjaga `alembic_version`), jalankan:
+
+```bash
+cd djabli_nest_server
+./scripts/reset_data_keep_users.sh
+```
+
+Atau langsung via SQL:
+
+```bash
+docker compose exec -T postgres psql -U djabli -d djablinest < ./scripts/reset_data_keep_users.sql
+```
+
 Di dalam container:
 
 ```bash
