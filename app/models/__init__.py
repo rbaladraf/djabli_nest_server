@@ -15,6 +15,7 @@ from app.models.device import Device
 from app.models.file import BatchFile, FileType, PhotoType
 from app.models.inventory import InventoryLot, LotStatus, GradeType, RegradingRecord, ReweighingRecord
 from app.models.sync import StatusHistory, SyncEvent
+from app.models.verification import BatchVerification, RiskLevel
 from app.models.user import User, UserRole
 
 __all__ = [
@@ -42,4 +43,6 @@ __all__ = [
     "StatusHistory",
     "SyncEvent",
     "AuditLog",
+    "BatchVerification",
+    "RiskLevel",
 ]

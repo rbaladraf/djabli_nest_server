@@ -217,6 +217,47 @@ curl -H "Authorization: Bearer $TOKEN" \
   http://localhost/api/files/{file_uuid} --output bukti.jpg
 ```
 
+## Batch Verification / Yield Control
+
+Modul deteksi susut berat & kadar air pada lifecycle batch existing (tanpa status baru).
+
+### Endpoint verifikasi (Admin)
+
+| Method | Path | Body utama |
+|--------|------|------------|
+| GET | `/api/admin/batches/{batch_uuid}/verification` | — |
+| POST | `/api/admin/batches/{batch_uuid}/receive` | `berat_received_kg`, `kadar_air_pct` |
+| POST | `/api/admin/batches/{batch_uuid}/move-to-quarantine` | `berat_karantina_kg` |
+| POST | `/api/admin/batches/{batch_uuid}/reweigh` | `berat_reweighing_kg` |
+| POST | `/api/admin/batches/{batch_uuid}/regrade` | `berat_final_kg`, optional `items[]` |
+| POST | `/api/admin/batches/{batch_uuid}/finalize` | optional `note` |
+| POST | `/api/admin/batches/{batch_uuid}/reject` | `reason` |
+
+Semua response action menyertakan `verification` (risk_level, flags, yield) dan `warnings`.
+
+### Reporting
+
+- `GET /api/admin/reports/yield-summary?start_date=&end_date=&collector_id=&supplier_id=`
+- `GET /api/admin/reports/collector-risk`
+- `GET /api/admin/reports/supplier-risk`
+
+### Flags & risk
+
+- `arrival_weight_higher_than_field` — berat gudang > berat lapangan
+- `high_quarantine_shrink` — susut karantina > 3%
+- `high_total_shrink` — susut total > 5%
+- `high_moisture` — kadar air ≥ 18%
+
+Risk: **HIGH** (shrink/moisture), **MEDIUM** (arrival higher / quarantine shrink), **LOW** (normal).
+
+Finalize dengan risk **HIGH** tidak diblokir, tetapi response berisi `warnings`.
+
+### Migrasi
+
+```bash
+docker compose exec api alembic upgrade head
+```
+
 ## Backup & Restore Database
 
 ```bash

@@ -1,5 +1,5 @@
 from app.repositories.inventory_repository import InventoryRepository
-from tests.conftest import auth_header, new_uuid, sha256_hex
+from tests.conftest import auth_header, sha256_hex
 from tests.test_mobile_batch_flow import _batch_payload
 
 
@@ -51,40 +51,48 @@ def test_admin_full_flow_creates_inventory_only_after_finalize(
 
     assert len(inv_repo.list_by_batch(batch_uuid)) == 0
 
-    assert client.post(f"/api/admin/batches/{batch_uuid}/receive", headers=headers).status_code == 200
-    assert (
-        client.post(f"/api/admin/batches/{batch_uuid}/move-to-quarantine", headers=headers).status_code
-        == 200
+    receive = client.post(
+        f"/api/admin/batches/{batch_uuid}/receive",
+        json={"berat_received_kg": "1.200", "kadar_air_pct": "15.0"},
+        headers=headers,
     )
+    assert receive.status_code == 200
+    assert "verification" in receive.json()
+
+    quarantine = client.post(
+        f"/api/admin/batches/{batch_uuid}/move-to-quarantine",
+        json={"berat_karantina_kg": "1.180"},
+        headers=headers,
+    )
+    assert quarantine.status_code == 200
     assert len(inv_repo.list_by_batch(batch_uuid)) == 0
 
-    reweigh = {
-        "gross_weight_kg": "1.300",
-        "tare_weight_kg": "0.100",
-        "net_weight_kg": "1.200",
-        "shrinkage_kg": "0.050",
-    }
-    assert (
-        client.post(f"/api/admin/batches/{batch_uuid}/reweigh", json=reweigh, headers=headers).status_code
-        == 200
+    reweigh = client.post(
+        f"/api/admin/batches/{batch_uuid}/reweigh",
+        json={"berat_reweighing_kg": "1.200"},
+        headers=headers,
     )
+    assert reweigh.status_code == 200
     assert len(inv_repo.list_by_batch(batch_uuid)) == 0
 
-    regrade = {
-        "items": [
-            {"grade_type": "MANGKUK", "weight_kg": "1.000"},
-            {"grade_type": "SUDUT", "weight_kg": "0.200"},
-        ]
-    }
-    assert (
-        client.post(f"/api/admin/batches/{batch_uuid}/regrade", json=regrade, headers=headers).status_code
-        == 200
+    regrade = client.post(
+        f"/api/admin/batches/{batch_uuid}/regrade",
+        json={
+            "berat_final_kg": "1.200",
+            "items": [
+                {"grade_type": "MANGKUK", "weight_kg": "1.000"},
+                {"grade_type": "SUDUT", "weight_kg": "0.200"},
+            ],
+        },
+        headers=headers,
     )
+    assert regrade.status_code == 200
     assert len(inv_repo.list_by_batch(batch_uuid)) == 0
 
     fin = client.post(f"/api/admin/batches/{batch_uuid}/finalize", headers=headers)
     assert fin.status_code == 200
     assert fin.json()["status"] == "FINALIZED"
+    assert fin.json()["verification"]["risk_level"] in ("LOW", "MEDIUM", "HIGH")
 
     lots = inv_repo.list_by_batch(batch_uuid)
     assert len(lots) >= 1
@@ -94,3 +102,7 @@ def test_admin_full_flow_creates_inventory_only_after_finalize(
     assert detail.status_code == 200
     assert detail.json()["status"] == "FINALIZED"
     assert len(detail.json()["inventory_lots"]) >= 1
+
+    verification = client.get(f"/api/admin/batches/{batch_uuid}/verification", headers=headers)
+    assert verification.status_code == 200
+    assert verification.json()["berat_lapangan_kg"] is not None

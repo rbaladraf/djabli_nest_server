@@ -208,6 +208,9 @@ class BatchService:
             batch.sync_version,
             {"status": BatchStatus.UPLOADED.value},
         )
+        from app.services.batch_verification_service import BatchVerificationService
+
+        BatchVerificationService(self.db).get_or_create_verification(batch)
         self.db.commit()
         self.db.refresh(batch)
         return batch

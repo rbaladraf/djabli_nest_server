@@ -108,6 +108,12 @@ class Batch(Base):
     regrading_records = relationship("RegradingRecord", back_populates="batch", lazy="selectin")
     inventory_lots = relationship("InventoryLot", back_populates="batch", lazy="selectin")
     status_history = relationship("StatusHistory", back_populates="batch", lazy="selectin")
+    verification = relationship(
+        "BatchVerification",
+        back_populates="batch",
+        uselist=False,
+        lazy="selectin",
+    )
 
 
 class BatchPurchaseDetail(Base):

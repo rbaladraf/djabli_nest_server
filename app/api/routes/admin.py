@@ -4,24 +4,26 @@ from fastapi import APIRouter, Query
 
 from app.core.deps import AdminUser, DbSession
 from app.models.batch import BatchStatus
-from app.schemas.admin import (
-    AdminSyncResponse,
-    BatchActionResponse,
-    FinalizeRequest,
-    RegradeRequest,
-    RejectRequest,
-    ReweighRequest,
-    StatusChangeRequest,
-)
 from app.schemas.batch import BatchDetailOut, BatchSummaryOut
+from app.schemas.verification import (
+    BatchActionWithVerificationResponse,
+    BatchVerificationOut,
+    FinalizeVerificationRequest,
+    QuarantineVerificationRequest,
+    ReceiveVerificationRequest,
+    RegradeVerificationRequest,
+    RejectVerificationRequest,
+    ReweighVerificationRequest,
+)
 from app.services.batch_service import BatchService
+from app.services.batch_verification_service import BatchVerificationService
 from app.services.sync_service import SyncService
 from app.utils.datetime_utils import parse_optional_since
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
-@router.get("/sync/batches", response_model=AdminSyncResponse)
+@router.get("/sync/batches")
 def sync_batches(
     user: AdminUser,
     db: DbSession,
@@ -50,6 +52,11 @@ def get_batch(batch_uuid: str, user: AdminUser, db: DbSession):
     return BatchService(db).get_batch_detail(batch_uuid)
 
 
+@router.get("/batches/{batch_uuid}/verification", response_model=BatchVerificationOut)
+def get_verification(batch_uuid: str, user: AdminUser, db: DbSession):
+    return BatchVerificationService(db).get_verification(batch_uuid)
+
+
 @router.get("/batches/{batch_uuid}/photos")
 def list_photos(batch_uuid: str, user: AdminUser, db: DbSession):
     from app.repositories.file_repository import FileRepository
@@ -69,46 +76,39 @@ def list_photos(batch_uuid: str, user: AdminUser, db: DbSession):
     ]
 
 
-def _action_response(batch) -> BatchActionResponse:
-    return BatchActionResponse(
-        batch_uuid=batch.batch_uuid,
-        status=batch.status.value,
-        sync_version=batch.sync_version,
-        message="ok",
-    )
+@router.post("/batches/{batch_uuid}/receive", response_model=BatchActionWithVerificationResponse)
+def receive(batch_uuid: str, user: AdminUser, db: DbSession, body: ReceiveVerificationRequest):
+    return BatchVerificationService(db).receive(batch_uuid, user, body)
 
 
-@router.post("/batches/{batch_uuid}/receive", response_model=BatchActionResponse)
-def receive(batch_uuid: str, user: AdminUser, db: DbSession, body: StatusChangeRequest = StatusChangeRequest()):
-    batch = BatchService(db).receive(batch_uuid, user, body)
-    return _action_response(batch)
+@router.post(
+    "/batches/{batch_uuid}/move-to-quarantine",
+    response_model=BatchActionWithVerificationResponse,
+)
+def quarantine(batch_uuid: str, user: AdminUser, db: DbSession, body: QuarantineVerificationRequest):
+    return BatchVerificationService(db).move_to_quarantine(batch_uuid, user, body)
 
 
-@router.post("/batches/{batch_uuid}/move-to-quarantine", response_model=BatchActionResponse)
-def quarantine(batch_uuid: str, user: AdminUser, db: DbSession, body: StatusChangeRequest = StatusChangeRequest()):
-    batch = BatchService(db).move_to_quarantine(batch_uuid, user, body)
-    return _action_response(batch)
+@router.post("/batches/{batch_uuid}/reweigh", response_model=BatchActionWithVerificationResponse)
+def reweigh(batch_uuid: str, user: AdminUser, db: DbSession, body: ReweighVerificationRequest):
+    return BatchVerificationService(db).reweigh(batch_uuid, user, body)
 
 
-@router.post("/batches/{batch_uuid}/reweigh", response_model=BatchActionResponse)
-def reweigh(batch_uuid: str, user: AdminUser, db: DbSession, body: ReweighRequest):
-    batch = BatchService(db).reweigh(batch_uuid, user, body)
-    return _action_response(batch)
+@router.post("/batches/{batch_uuid}/regrade", response_model=BatchActionWithVerificationResponse)
+def regrade(batch_uuid: str, user: AdminUser, db: DbSession, body: RegradeVerificationRequest):
+    return BatchVerificationService(db).regrade(batch_uuid, user, body)
 
 
-@router.post("/batches/{batch_uuid}/regrade", response_model=BatchActionResponse)
-def regrade(batch_uuid: str, user: AdminUser, db: DbSession, body: RegradeRequest):
-    batch = BatchService(db).regrade(batch_uuid, user, body)
-    return _action_response(batch)
+@router.post("/batches/{batch_uuid}/finalize", response_model=BatchActionWithVerificationResponse)
+def finalize(
+    batch_uuid: str,
+    user: AdminUser,
+    db: DbSession,
+    body: FinalizeVerificationRequest = FinalizeVerificationRequest(),
+):
+    return BatchVerificationService(db).finalize(batch_uuid, user, body)
 
 
-@router.post("/batches/{batch_uuid}/finalize", response_model=BatchActionResponse)
-def finalize(batch_uuid: str, user: AdminUser, db: DbSession, body: FinalizeRequest = FinalizeRequest()):
-    batch = BatchService(db).finalize(batch_uuid, user, body)
-    return _action_response(batch)
-
-
-@router.post("/batches/{batch_uuid}/reject", response_model=BatchActionResponse)
-def reject(batch_uuid: str, user: AdminUser, db: DbSession, body: RejectRequest):
-    batch = BatchService(db).reject(batch_uuid, user, body)
-    return _action_response(batch)
+@router.post("/batches/{batch_uuid}/reject", response_model=BatchActionWithVerificationResponse)
+def reject(batch_uuid: str, user: AdminUser, db: DbSession, body: RejectVerificationRequest):
+    return BatchVerificationService(db).reject(batch_uuid, user, body)
